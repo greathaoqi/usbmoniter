@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init *)",
+      "Bash(git branch *)",
+      "Bash(git remote *)",
+      "Bash(git add *)",
+      "Bash(git rm *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(export http_proxy=http://127.0.0.1:10808)",
+      "Bash(export https_proxy=http://127.0.0.1:10808)",
+      "Bash(export ALL_PROXY=socks5://127.0.0.1:10808)",
+      "Bash(tar -czf usbmoniter.tar.gz --exclude=.git --exclude=.gitignore *)"
+    ]
+  }
+}

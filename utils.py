@@ -6,6 +6,10 @@ import re
 import subprocess
 import requests
 import psutil
+import hmac
+import hashlib
+import base64
+import urllib.parse
 from typing import List, Optional, Tuple, Dict
 from dataclasses import dataclass
 from PIL import Image
@@ -201,10 +205,33 @@ class DateExtractor:
 
 
 class DingTalkNotifier:
-    """Sends notifications to DingTalk via webhook."""
+    """Sends notifications to DingTalk via webhook.
+    Supports signature verification (required for newer DingTalk robots)."""
 
-    def __init__(self, webhook_url: str):
+    def __init__(self, webhook_url: str, secret: str = ""):
         self.webhook_url = webhook_url
+        self.secret = secret
+
+    def _get_signed_url(self) -> str:
+        """Generate signed URL with timestamp when secret is provided."""
+        if not self.secret:
+            return self.webhook_url
+
+        timestamp = str(int(round(time.time() * 1000)))
+        string_to_sign = f"{timestamp}\n{self.secret}"
+
+        hmac_code = hmac.new(
+            self.secret.encode('utf-8'),
+            string_to_sign.encode('utf-8'),
+            hashlib.sha256
+        ).digest()
+        sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
+
+        # Add timestamp and sign to URL
+        if '?' in self.webhook_url:
+            return f"{self.webhook_url}&timestamp={timestamp}&sign={sign}"
+        else:
+            return f"{self.webhook_url}?timestamp={timestamp}&sign={sign}"
 
     def send_start(self, files_to_upload: int) -> bool:
         """Send notification when backup starts, showing how many files will be uploaded."""
@@ -219,7 +246,8 @@ class DingTalkNotifier:
         }
 
         try:
-            response = requests.post(self.webhook_url, json=payload, timeout=10)
+            url = self._get_signed_url()
+            response = requests.post(url, json=payload, timeout=10)
             response.raise_for_status()
             result = response.json()
             if result.get("errcode", 0) != 0:
@@ -249,7 +277,8 @@ class DingTalkNotifier:
         }
 
         try:
-            response = requests.post(self.webhook_url, json=payload, timeout=10)
+            url = self._get_signed_url()
+            response = requests.post(url, json=payload, timeout=10)
             response.raise_for_status()
             result = response.json()
             if result.get("errcode", 0) != 0:
@@ -299,17 +328,32 @@ class UsbDetector:
 
     @staticmethod
     def get_mount_points() -> List[str]:
-        """Get all mount points that are on USB devices."""
+        """Get all mount points that are on USB devices.
+        Skip system mount points like /, /boot, /sys, etc."""
         usb_mounts = []
+        system_mounts = ('/', '/boot', '/etc', '/usr', '/var', '/home', '/root')
+
         for partition in psutil.disk_partitions():
             # Check if device path contains usb or /dev/sd* (usually USB on many systems)
-            if '/dev/' in partition.device and (
-                'usb' in partition.device.lower() or
-                partition.fstype not in ('devtmpfs', 'tmpfs', 'sysfs', 'proc')
-            ):
-                # Skip system partitions
-                if not any(skip in partition.mountpoint for skip in ('/sys', '/proc', '/dev', '/run')):
-                    usb_mounts.append(partition.mountpoint)
+            is_usb = False
+            if '/dev/' in partition.device:
+                if 'usb' in partition.device.lower():
+                    is_usb = True
+                elif partition.fstype not in ('devtmpfs', 'tmpfs', 'sysfs', 'proc', 'devtmpfs', 'efivarfs'):
+                    # For non-usb labeled devices, check if it's a removable device
+                    # Heuristic: skip known system mount points
+                    is_usb = True
+
+            if is_usb:
+                # Skip known system partitions
+                if any(partition.mountpoint == sys_mount for sys_mount in system_mounts):
+                    continue
+                # Skip any mount point under system directories
+                if any(partition.mountpoint.startswith(sys_mount + '/') for sys_mount in ('/sys', '/proc', '/dev', '/run', '/boot', '/etc', '/usr')):
+                    continue
+
+                usb_mounts.append(partition.mountpoint)
+
         return usb_mounts
 
     @staticmethod
@@ -410,7 +454,7 @@ class UsbDetector:
                 if partition.mountpoint == mount_point:
                     device = partition.device
                     # Get the parent device (e.g., /dev/sdb from /dev/sdb1)
-                    if '1' in device:
+                    if any(c.isdigit() for c in device[-1]):
                         base_device = device.rstrip('0123456789')
                         # Find the syspath
                         # This approach varies by system, but let's try common paths

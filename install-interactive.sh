@@ -56,6 +56,7 @@ if [ -z "$SYNOLOGY_REMOTE_PATH" ]; then
 fi
 
 DINGTALK_WEBHOOK=$(read_input "钉钉机器人 Webhook URL" "")
+DINGTALK_SECRET=$(read_input "钉钉机器人密钥 (加签验证，不需要留空)" "")
 
 SPECIFIC_FOLDERS=$(read_input "只处理特定文件夹 (例如 DCIM,CC,DS，留空处理所有)" "")
 
@@ -68,23 +69,23 @@ echo ">>> 开始安装..."
 echo
 
 # Install system dependencies
-echo "[1/8] 安装系统依赖..."
+echo "[1/9] 安装系统依赖..."
 apt-get update
 apt-get install -y python3 python3-pip python3-venv rsync git
 
 # Create installation directory
-echo "[2/8] 创建安装目录..."
+echo "[2/9] 创建安装目录..."
 mkdir -p "$INSTALL_DIR"
 
 # Copy all files
-echo "[3/8] 复制程序文件..."
+echo "[3/9] 复制程序文件..."
 cp -f usb_photo_upload.py config.py utils.py "$INSTALL_DIR/"
 cp -f requirements.txt "$INSTALL_DIR/"
 cp -f 99-usb-photo-upload.rules "$INSTALL_DIR/"
 cp -f usb-photo-upload.service "$INSTALL_DIR/"
 
 # Generate .env configuration file
-echo "[4/8] 生成配置文件..."
+echo "[4/9] 生成配置文件..."
 cat > "$INSTALL_DIR/.env" <<EOF
 # Synology NAS Configuration
 SYNOLOGY_HOST=$SYNOLOGY_HOST
@@ -94,6 +95,8 @@ SYNOLOGY_REMOTE_PATH=$SYNOLOGY_REMOTE_PATH
 
 # DingTalk Robot Webhook
 DINGTALK_WEBHOOK=$DINGTALK_WEBHOOK
+# DingTalk Secret for signature verification
+DINGTALK_SECRET=$DINGTALK_SECRET
 
 # Supported file extensions (whitelist)
 SUPPORTED_EXTENSIONS=.jpg,.jpeg,.png,.raw,.arw,.cr2,.nef,.heic,.mp4,.mov,.avi
@@ -112,23 +115,26 @@ INSTALL_DIR=$INSTALL_DIR
 EOF
 
 # Create Python virtual environment
-echo "[5/8] 创建 Python 虚拟环境..."
+echo "[5/9] 创建 Python 虚拟环境..."
 python3 -m venv "$VENV_DIR"
 
 # Install Python dependencies into virtual environment
-echo "[6/8] 安装 Python 依赖..."
+echo "[6/9] 安装 Python 依赖..."
 "$VENV_DIR/bin/pip" install -r "$INSTALL_DIR/requirements.txt"
 
 # Make main script executable
 chmod +x "$INSTALL_DIR/usb_photo_upload.py"
 
 # Copy udev rule
-echo "[7/8] 安装 udev 规则..."
+echo "[7/9] 安装 udev 规则..."
 cp -f 99-usb-photo-upload.rules /etc/udev/rules.d/
 
 # Update systemd service with correct venv path
-echo "[8/8] 安装 systemd 服务..."
+echo "[8/9] 安装 systemd 服务..."
 sed "s|@INSTALL_DIR@|$INSTALL_DIR|g" usb-photo-upload.service > /etc/systemd/system/usb-photo-upload.service
+
+# Reload configurations
+echo "[9/9] 重载配置..."
 
 # Reload configurations
 echo ">>> 重载配置..."

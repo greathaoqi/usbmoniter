@@ -153,7 +153,7 @@ def monitor_usb_devices(config: Config):
     state_path = os.path.join(config.install_dir, "state.json")
     state_manager = StateManager(state_path)
     rsync_uploader = RsyncUploader(config)
-    notifier = DingTalkNotifier(config.dingtalk_webhook)
+    notifier = DingTalkNotifier(config.dingtalk_webhook, config.dingtalk_secret)
 
     # Process any already mounted USB devices on startup
     try:

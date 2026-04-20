@@ -15,6 +15,8 @@ class Config:
 
         # DingTalk settings
         self.dingtalk_webhook = self._get_required("DINGTALK_WEBHOOK")
+        # DingTalk secret for signing (optional, required when using signature verification)
+        self.dingtalk_secret = os.getenv("DINGTALK_SECRET", "")
 
         # USB settings
         supported_exts = os.getenv(

@@ -69,6 +69,7 @@ sudo systemctl restart usb-photo-upload
 | `SYNOLOGY_PORT` | SSH 端口 | `22` |
 | `SYNOLOGY_REMOTE_PATH` | 远程照片路径 | `/volume1/photo/camera/` |
 | `DINGTALK_WEBHOOK` | 钉钉机器人 Webhook | `https://oapi.dingtalk.com/robot/send?access_token=xxx` |
+| `DINGTALK_SECRET` | 钉钉机器人密钥（加签验证，可选） | `your_secret_here` |
 | `SUPPORTED_EXTENSIONS` | 白名单：支持的文件扩展名 | `.jpg,.jpeg,.png,.raw,.mp4,...` |
 | `SPECIFIC_FOLDERS` | 白名单：只处理这些文件夹（逗号分隔） | `DCIM,CC,DS` |
 | `AUTO_UNMOUNT` | 是否自动卸载 | `true` |
