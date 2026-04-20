@@ -142,8 +142,24 @@ def process_usb_device(config: Config, state_manager: StateManager,
                 )
 
 
+def is_usb_device(device: pyudev.Device) -> bool:
+    """Check if device is on USB bus."""
+    # Check if device is connected via USB
+    if device.get('ID_BUS') == 'usb':
+        return True
+    # Check parent devices
+    parent = device.parent
+    while parent:
+        if parent.get('ID_BUS') == 'usb':
+            return True
+        if 'usb' in parent.get('DEVTYPE', '') or 'usb' in parent.get('SUBSYSTEM', ''):
+            return True
+        parent = parent.parent
+    return False
+
 def monitor_usb_devices(config: Config):
-    """Main loop that monitors for USB device insertion events."""
+    """Main loop that monitors for USB device insertion events.
+    Only processes block devices on USB bus."""
     context = pyudev.Context()
     monitor = pyudev.Monitor.from_netlink(context)
     monitor.filter_by(subsystem='block', device_type='partition')
@@ -168,6 +184,11 @@ def monitor_usb_devices(config: Config):
     # Listen for new events
     for device in iter(monitor.poll, None):
         if device.action == 'add':
+            # Only process if device is on USB bus
+            if not is_usb_device(device):
+                logger.debug(f"Ignoring non-USB block device: {device.device_path}")
+                continue
+
             logger.info(f"USB device added: {device.device_path}")
             # Give udisks a moment to mount the device
             time.sleep(3)
