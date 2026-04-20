@@ -1,5 +1,6 @@
 # udev rule to trigger USB photo upload when a USB block device is added
 # This rule is installed to /etc/udev/rules.d/ by the install script
 
-# Trigger on any USB block device (partition) being added
-SUBSYSTEM=="block", ENV{ID_BUS}=="usb", ACTION=="add", RUN+="/bin/systemctl try-restart usb-photo-upload.service"
+# Trigger on any block device (partition) being added
+# The service itself filters to only process USB devices
+SUBSYSTEM=="block", ACTION=="add", RUN+="/bin/systemctl try-restart usb-photo-upload.service"
