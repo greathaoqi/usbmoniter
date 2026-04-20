@@ -3,4 +3,4 @@
 
 # Trigger on any block device (partition) being added
 # The service itself filters to only process USB devices
-SUBSYSTEM=="block", ACTION=="add", RUN+="/bin/systemctl try-restart usb-photo-upload.service"
+SUBSYSTEM=="block", ACTION=="add", RUN+="/usr/bin/systemctl try-restart usb-photo-upload.service"
