@@ -1,0 +1,20 @@
+# Environment
+.env
+.env.local
+*.env
+
+# State file
+state.json
+
+# Python cache
+__pycache__/
+*.py[co]
+*.pyc
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
