@@ -172,7 +172,11 @@ def monitor_usb_devices(config: Config):
     notifier = DingTalkNotifier(config.dingtalk_webhook, config.dingtalk_secret)
 
     # Process any already mounted USB devices on startup
+    # When triggered by udev add event, udisks may still be mounting the device
+    # Wait a few seconds for mounting to complete before scanning
     try:
+        logger.info("Waiting for USB device mount to complete...")
+        time.sleep(5)
         process_usb_device(config, state_manager, rsync_uploader, notifier)
     except Exception as e:
         logger.error(f"Error processing USB device on startup: {e}", exc_info=True)
