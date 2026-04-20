@@ -5,6 +5,7 @@ set -e
 # This script asks user for configuration and installs everything automatically
 
 INSTALL_DIR="/opt/usb-photo-upload"
+VENV_DIR="$INSTALL_DIR/venv"
 
 echo "=== USB 照片自动上传群辉 - 交互式安装 ==="
 echo
@@ -67,23 +68,23 @@ echo ">>> 开始安装..."
 echo
 
 # Install system dependencies
-echo "[1/7] 安装系统依赖..."
+echo "[1/8] 安装系统依赖..."
 apt-get update
-apt-get install -y python3 python3-pip rsync git
+apt-get install -y python3 python3-pip python3-venv rsync git
 
 # Create installation directory
-echo "[2/7] 创建安装目录..."
+echo "[2/8] 创建安装目录..."
 mkdir -p "$INSTALL_DIR"
 
 # Copy all files
-echo "[3/7] 复制程序文件..."
+echo "[3/8] 复制程序文件..."
 cp -f usb_photo_upload.py config.py utils.py "$INSTALL_DIR/"
 cp -f requirements.txt "$INSTALL_DIR/"
 cp -f 99-usb-photo-upload.rules "$INSTALL_DIR/"
 cp -f usb-photo-upload.service "$INSTALL_DIR/"
 
 # Generate .env configuration file
-echo "[4/7] 生成配置文件..."
+echo "[4/8] 生成配置文件..."
 cat > "$INSTALL_DIR/.env" <<EOF
 # Synology NAS Configuration
 SYNOLOGY_HOST=$SYNOLOGY_HOST
@@ -110,20 +111,24 @@ ORGANIZE_BY_DATE=$ORGANIZE_BY_DATE
 INSTALL_DIR=$INSTALL_DIR
 EOF
 
-# Install Python dependencies
-echo "[5/7] 安装 Python 依赖..."
-pip3 install -r "$INSTALL_DIR/requirements.txt"
+# Create Python virtual environment
+echo "[5/8] 创建 Python 虚拟环境..."
+python3 -m venv "$VENV_DIR"
+
+# Install Python dependencies into virtual environment
+echo "[6/8] 安装 Python 依赖..."
+"$VENV_DIR/bin/pip" install -r "$INSTALL_DIR/requirements.txt"
 
 # Make main script executable
 chmod +x "$INSTALL_DIR/usb_photo_upload.py"
 
 # Copy udev rule
-echo "[6/7] 安装 udev 规则..."
+echo "[7/8] 安装 udev 规则..."
 cp -f 99-usb-photo-upload.rules /etc/udev/rules.d/
 
-# Copy systemd service
-echo "[7/7] 安装 systemd 服务..."
-cp -f usb-photo-upload.service /etc/systemd/system/
+# Update systemd service with correct venv path
+echo "[8/8] 安装 systemd 服务..."
+sed "s|@INSTALL_DIR@|$INSTALL_DIR|g" usb-photo-upload.service > /etc/systemd/system/usb-photo-upload.service
 
 # Reload configurations
 echo ">>> 重载配置..."
@@ -140,6 +145,8 @@ echo "================================================"
 echo "        安装完成！"
 echo "================================================"
 echo
+echo "安装目录: $INSTALL_DIR"
+echo "虚拟环境: $VENV_DIR"
 echo "配置文件: $INSTALL_DIR/.env"
 echo "服务状态: $(systemctl is-active usb-photo-upload)"
 echo

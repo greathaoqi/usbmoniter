@@ -2,6 +2,7 @@
 set -e
 
 INSTALL_DIR="/opt/usb-photo-upload"
+VENV_DIR="$INSTALL_DIR/venv"
 
 echo "=== USB Photo Auto-Upload Installer ==="
 echo
@@ -15,7 +16,7 @@ fi
 # Install system dependencies
 echo ">>> Installing system dependencies..."
 apt-get update
-apt-get install -y python3 python3-pip rsync
+apt-get install -y python3 python3-pip python3-venv rsync
 
 # Create installation directory
 echo ">>> Creating installation directory..."
@@ -26,9 +27,13 @@ echo ">>> Copying files to $INSTALL_DIR..."
 cp -f usb_photo_upload.py config.py utils.py "$INSTALL_DIR/"
 cp -f requirements.txt .env.example "$INSTALL_DIR/"
 
-# Install Python dependencies
+# Create Python virtual environment
+echo ">>> Creating Python virtual environment..."
+python3 -m venv "$VENV_DIR"
+
+# Install Python dependencies into virtual environment
 echo ">>> Installing Python dependencies..."
-pip3 install -r "$INSTALL_DIR/requirements.txt"
+"$VENV_DIR/bin/pip" install -r "$INSTALL_DIR/requirements.txt"
 
 # Make main script executable
 chmod +x "$INSTALL_DIR/usb_photo_upload.py"
@@ -37,9 +42,9 @@ chmod +x "$INSTALL_DIR/usb_photo_upload.py"
 echo ">>> Installing udev rule..."
 cp -f 99-usb-photo-upload.rules /etc/udev/rules.d/
 
-# Copy systemd service
+# Copy systemd service with path substitution
 echo ">>> Installing systemd service..."
-cp -f usb-photo-upload.service /etc/systemd/system/
+sed "s|@INSTALL_DIR@|$INSTALL_DIR|g" usb-photo-upload.service > /etc/systemd/system/usb-photo-upload.service
 
 # Reload configurations
 echo ">>> Reloading udev and systemd..."

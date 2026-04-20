@@ -31,8 +31,10 @@ sudo ./install-interactive.sh
 脚本会自动：
 - 安装系统依赖
 - 创建目录并复制文件
+- 创建 Python **虚拟环境**（不污染系统 Python）
 - 交互式询问你的配置信息
 - 自动生成 `.env` 配置文件
+- 在虚拟环境中安装 Python 依赖
 - 安装 udev 规则和 systemd 服务
 - 启动服务
 

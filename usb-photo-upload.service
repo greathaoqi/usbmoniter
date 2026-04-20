@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/usb-photo-upload
-ExecStart=/usr/bin/python3 /opt/usb-photo-upload/usb_photo_upload.py
+WorkingDirectory=@INSTALL_DIR@
+ExecStart=@INSTALL_DIR@/venv/bin/python3 @INSTALL_DIR@/usb_photo_upload.py
 Restart=always
 RestartSec=10
 Environment=PYTHONUNBUFFERED=1
